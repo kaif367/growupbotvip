@@ -15,7 +15,7 @@ app = Client("GrowUpBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 from pyrogram import Client as UserClient
 user = UserClient("user", api_id=API_ID, api_hash=API_HASH)
 
-QUOTEX_BOT_USERNAME = "QuotexAffiliateBot"  # Replace with actual username if different
+QUOTEX_BOT_USERNAME = "QuotexPartnerBot"  # Replace with actual username if different
 
 @app.on_message(filters.private & filters.text & ~filters.command("start"))
 async def handle_trader_id(client: Client, message: Message):
