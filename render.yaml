@@ -5,6 +5,3 @@ services:
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python3 main.py"
-    envVars:
-      - key: PORT
-        value: "8080"  # Ensure Render isn't confused by expecting a port
