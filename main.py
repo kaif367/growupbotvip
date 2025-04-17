@@ -32,9 +32,9 @@ async def handle_trader_id(client: Client, message: Message):
     # Save pending user ID
     pending_checks[message.from_user.id] = trader_id
 
-    # Forward ID to Quotex bot
-    await user.send_message(QUOTEX_BOT_USERNAME, trader_id)
-
+    # Forward ID to Quotex bot (as a user)
+    async with user:
+        await user.send_message(QUOTEX_BOT_USERNAME, trader_id)
 
 @user.on_message(filters.chat(QUOTEX_BOT_USERNAME))
 async def handle_affiliate_reply(client: Client, message: Message):
@@ -64,7 +64,6 @@ async def handle_affiliate_reply(client: Client, message: Message):
             else:
                 await bot.send_message(user_id, "⚠️ Couldn't find deposit info.")
             break
-
 
 async def main():
     await bot.start()
