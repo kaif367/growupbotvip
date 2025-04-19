@@ -1,78 +1,63 @@
-import asyncio
-from pyrogram import Client, filters
-from telethon.sync import TelegramClient
-from telethon.sessions import StringSession
+import os
 import logging
+from pyrogram import Client, filters, idle
+from telethon import TelegramClient
+from telethon.sessions import StringSession
 
-# Enable logging for debugging
+# Debugging enable karo
 logging.basicConfig(level=logging.DEBUG)
 
-# Pyrogram bot setup
-API_ID = 24356162
-API_HASH = "62ec18e1057a76c520f10662c66ef71b"
-BOT_TOKEN = "8037173328:AAHHlauP_D9le4nLZJPonaio_p0kyG43elM"
-VIP_CHANNEL_LINK = "https://t.me/+YOUR_VIP_INVITE_LINK"  # replace with your actual VIP invite
+# Environment variables (Railway/Config se set karo)
+API_ID = int(os.getenv("API_ID", 24356162))
+API_HASH = os.getenv("API_HASH", "62ec18e1057a76c520f10662c66ef71b")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8037173328:AAHHlauP_D9le4nLZJPonaio_p0kyG43elM")
+SESSION_STRING = os.getenv("SESSION_STRING", "1BVtsOI8Bu5MC93OUbsHTCPRyn4rgR1D0EkwvhCGQ3w453y1LQKotWbgdCHyCSuiDD-C0Szgg87sQmVTpBKR9UQDi_DRxRZ8zvbNW3CQKq1UBXH-bu6J-Igb6f-xBIklSUgVDs_0zE08-d6qGMUNUSVsfAeTExNWoupQxg_aC9t9Dv9JRuxo_wBId6MZ2zdITlYidnTbSJEshEUlOX-uu08UeY1yuoECsoijekY_zZpXabg8sejvL3mfhvIXOntVNfTBw8kq_oWB2WDJx0jj12Thev9cidviG4aHLQqLBe8Hs0DLyVBtE9Whqo0vw8HEPrDEk3Z-_fGWi8lGFHTIvtZb0LymYIHo=")
+VIP_CHANNEL_LINK = "https://t.me/+YOUR_VIP_LINK"  # Replace karo
 
-# Telethon client setup
-SESSION_STRING = "1BVtsOI8Bu5MC93OUbsHTCPRyn4rgR1D0EkwvhCGQ3w453y1LQKotWbgdCHyCSuiDD-C0Szgg87sQmVTpBKR9UQDi_DRxRZ8zvbNW3CQKq1UBXH-bu6J-Igb6f-xBIklSUgVDs_0zE08-d6qGMUNUSVsfAeTExNWoupQxg_aC9t9Dv9JRuxo_wBId6MZ2zdITlYidnTbSJEshEUlOX-uu08UeY1yuoECsoijekY_zZpXabg8sejvL3mfhvIXOntVNfTBw8kq_oWB2WDJx0jj12Thev9cidviG4aHLQqLBe8Hs0DLyVBtE9Whqo0vw8HEPrDEk3Z-_fGWi8lGFHTIvtZb0LymYIHo="
+# Pyrogram Bot Initialize
+bot = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-bot = Client("growup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-tele_client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+# Telethon Client Setup
+tele_client = TelegramClient(
+    StringSession(SESSION_STRING),
+    API_ID,
+    API_HASH
+)
 
-# Queue for async message passing
-pending_checks = {}
+# Start Command Handler
+@bot.on_message(filters.command("start") & filters.private)
+async def start(client, message):
+    await message.reply("👋 Send your Quotex Trader ID to verify!")
 
-@bot.on_message(filters.private & filters.text & ~filters.command(["start"]))
+# Trader ID Handle Karne Ka Logic
+@bot.on_message(filters.private & filters.text & ~filters.command("start"))
 async def handle_trader_id(client, message):
-    user_id = message.from_user.id
-    trader_id = message.text.strip()
-
-    logging.debug(f"📩 Got trader ID: {trader_id}")  # Debug log
-
-    await message.reply("⏳ Verifying your Trader ID with Quotex Affiliate Bot...")
-
-    async def check_affiliate():
-        logging.debug("🛜 Sending ID to QuotexPartnerBot...")  # Debug log
-        async with tele_client.conversation("QuotexPartnerBot") as conv:
-            logging.debug(f"🔄 Sending {trader_id} to QuotexPartnerBot...")
-            await conv.send_message(trader_id)
-            logging.debug("✅ ID sent. Waiting for response...")  # Debug log
-            response = await conv.get_response()
-            logging.debug(f"📨 Got response: {response.text}")  # Debug log
-
-            # Check if response is positive (successful verification)
-            if "minimum deposit" in response.text.lower() or "approved" in response.text.lower() or "successfully" in response.text.lower():
-                logging.debug("✅ User verified. Sending VIP invite...")
-                await bot.send_message(user_id, f"✅ Verified! Here’s your VIP access:\n{VIP_CHANNEL_LINK}")
-            elif "not found" in response.text.lower() or "invalid" in response.text.lower():
-                logging.debug("❌ Trader ID not found or not under our affiliate.")
-                await bot.send_message(user_id, "❌ Trader ID not found or not under our affiliate.")
-            else:
-                logging.debug(f"⚠️ Unexpected response: {response.text}")
-                await bot.send_message(user_id, f"⚠️ Unexpected response:\n\n{response.text}")
-
-    asyncio.create_task(check_affiliate())
-
-@bot.on_message(filters.command("start"))
-async def start_cmd(client, message):
-    logging.debug(f"🟢 Bot started by user {message.from_user.id}")
-    await message.reply("👋 Welcome! Send your Quotex Trader ID to verify and join our VIP channel.")
-
-async def main():
     try:
-        logging.debug("🔄 Starting Telethon...")
-        await tele_client.start()
-        logging.debug("✅ Telethon started")
-
-        logging.debug("🔄 Starting Pyrogram bot...")
-        await bot.start()
-        logging.debug("🚀 Bot is running!")
+        trader_id = message.text.strip()
+        user_id = message.from_user.id
         
-        await idle()
+        await message.reply("⏳ Checking with Quotex...")
+        
+        # Telethon ke through QuotexPartnerBot se baat karo
+        async with tele_client.conversation("QuotexPartnerBot", timeout=20) as conv:
+            await conv.send_message(trader_id)
+            response = await conv.get_response()
+            
+            if "success" in response.text.lower() or "minimum deposit" in response.text.lower():
+                await message.reply(f"✅ Verified! Join VIP: {VIP_CHANNEL_LINK}")
+            else:
+                await message.reply("❌ Invalid ID / Deposit nahi hua!")
+                
     except Exception as e:
-        logging.error(f"❌ Error starting bot: {e}")
+        await message.reply(f"⚠️ Error: {str(e)}")
 
-from pyrogram import idle
+# Bot Start Karne Ka Logic
+async def main():
+    await tele_client.start()
+    await bot.start()
+    await idle()  # Bot ko running rakho
+    await bot.stop()
+    await tele_client.disconnect()
 
 if __name__ == "__main__":
     asyncio.run(main())
