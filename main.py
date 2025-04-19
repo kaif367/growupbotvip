@@ -1,4 +1,5 @@
 import os
+import asyncio  # Add this line
 import logging
 from pyrogram import Client, filters, idle
 from telethon import TelegramClient
