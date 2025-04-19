@@ -1,6 +1,6 @@
 import asyncio
 from pyrogram import Client, filters
-from telethon.sync import TelegramClient, events
+from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
 
 # Pyrogram bot setup
@@ -23,17 +23,22 @@ async def handle_trader_id(client, message):
     user_id = message.from_user.id
     trader_id = message.text.strip()
 
+    print(f"📩 Got trader ID: {trader_id}")  # Debug log
+
     await message.reply("⏳ Verifying your Trader ID with Quotex Affiliate Bot...")
 
     async def check_affiliate():
+        print("🛜 Sending ID to QuotexPartnerBot...")  # Debug log
         async with tele_client.conversation("QuotexPartnerBot") as conv:
             await conv.send_message(trader_id)
+            print("✅ ID sent. Waiting for response...")  # Debug log
             response = await conv.get_response()
-            reply = response.text.lower()
+            print(f"📨 Got response: {response.text}")  # Debug log
 
-            if "minimum deposit" in reply or "approved" in reply or "successfully" in reply:
+            # Check if response is positive (successful verification)
+            if "minimum deposit" in response.text.lower() or "approved" in response.text.lower() or "successfully" in response.text.lower():
                 await bot.send_message(user_id, f"✅ Verified! Here’s your VIP access:\n{VIP_CHANNEL_LINK}")
-            elif "not found" in reply or "invalid" in reply:
+            elif "not found" in response.text.lower() or "invalid" in response.text.lower():
                 await bot.send_message(user_id, "❌ Trader ID not found or not under our affiliate.")
             else:
                 await bot.send_message(user_id, f"⚠️ Unexpected response:\n\n{response.text}")
@@ -45,9 +50,14 @@ async def start_cmd(client, message):
     await message.reply("👋 Welcome! Send your Quotex Trader ID to verify and join our VIP channel.")
 
 async def main():
+    print("🔄 Starting Telethon...")
     await tele_client.start()
+    print("✅ Telethon started")
+
+    print("🔄 Starting Pyrogram bot...")
     await bot.start()
     print("🚀 Bot is running!")
+    
     await idle()
 
 from pyrogram import idle
