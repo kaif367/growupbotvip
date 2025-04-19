@@ -1,47 +1,56 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from telethon.sync import TelegramClient, events
 import asyncio
-import re
-import os
+from pyrogram import Client, filters
+from telethon.sync import TelegramClient, events
+from telethon.sessions import StringSession
 
+# Pyrogram bot setup
 API_ID = 24356162
 API_HASH = "62ec18e1057a76c520f10662c66ef71b"
-BOT_TOKEN = "7145293109:AAFpWPXnPbRk_svPa8dSkdn5gvDtiNXOpf8"
-VIP_CHANNEL_ID = -1002125235629
-QUOTEX_BOT = "QuotexPartnerBot"
-MIN_DEPOSIT = 10
+BOT_TOKEN = "8037173328:AAHHlauP_D9le4nLZJPonaio_p0kyG43elM"
+VIP_CHANNEL_LINK = "https://t.me/+YOUR_VIP_INVITE_LINK"  # replace with your actual VIP invite
 
-app = Client("GrowUpBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-telethon_client = TelegramClient("user_session", API_ID, API_HASH)
+# Telethon client setup
+SESSION_STRING = "1BVtsOI8Bu3iMLLZDga5XT3ON-BUSko87s9mwGNFDZGHJSmzwbu_ZlTum-vn9YKLMzVuqM--w4WySsF6SBFEkA0EnJ3lLecg6Em595I-NrmzYHGWtoo8ncOJWOXEE69H0u9WqkmUgEoNcsd0oFwSs_a0VP_naz-Y-H9wvdiZcwDcin2CJcD_kSVLvAxInhIv-1D5gaF4gNEGh59QgXlDPG-IilNua-cvo215D5JBCjLqrtj_L5K5miIRjBjGlmbEB6bMgrlfVZuDbyj2wuW87pWuLnc04PwfmOAqJB8Co6ReBk900H-ygU2W-D4M5bDHKNy9uSRLAuVp-DKb4sx2PZWeYVaUUeU4="
 
-@app.on_message(filters.private & filters.text & ~filters.command("start"))
-async def check_trader_id(client: Client, message: Message):
+bot = Client("growup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+tele_client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+
+# Queue for async message passing
+pending_checks = {}
+
+@bot.on_message(filters.private & filters.text & ~filters.command(["start"]))
+async def handle_trader_id(client, message):
+    user_id = message.from_user.id
     trader_id = message.text.strip()
-    if not trader_id.isdigit():
-        await message.reply("❌ Please send a valid Trader ID (only numbers).")
-        return
 
-    await message.reply("⏳ Checking your Trader ID...")
-    async with telethon_client:
-        sent = await telethon_client.send_message(QUOTEX_BOT, trader_id)
-        
-        @telethon_client.on(events.NewMessage(from_users=QUOTEX_BOT))
-        async def handler(event):
-            if trader_id in event.raw_text:
-                deposit_match = re.search(r"Deposits Sum: \$ ([\d.]+)", event.raw_text)
-                if deposit_match:
-                    deposit_amount = float(deposit_match.group(1))
-                    if deposit_amount >= MIN_DEPOSIT:
-                        await app.send_message(message.chat.id, "✅ You are verified!
-Here is your VIP link: https://t.me/c/" + str(VIP_CHANNEL_ID)[4:])
-                    else:
-                        await app.send_message(message.chat.id, f"❌ Your total deposit is ${deposit_amount}. Minimum ${MIN_DEPOSIT} is required.")
-                else:
-                    await app.send_message(message.chat.id, "❌ Could not find deposit info. Try again later.")
-            await telethon_client.remove_event_handler(handler)
+    await message.reply("⏳ Verifying your Trader ID with Quotex Affiliate Bot...")
 
-app.start()
-telethon_client.start()
-print("GrowUpBot is running...")
-asyncio.get_event_loop().run_forever()
+    async def check_affiliate():
+        async with tele_client.conversation("QuotexPartnerBot") as conv:
+            await conv.send_message(trader_id)
+            response = await conv.get_response()
+            reply = response.text.lower()
+
+            if "minimum deposit" in reply or "approved" in reply or "successfully" in reply:
+                await bot.send_message(user_id, f"✅ Verified! Here’s your VIP access:\n{VIP_CHANNEL_LINK}")
+            elif "not found" in reply or "invalid" in reply:
+                await bot.send_message(user_id, "❌ Trader ID not found or not under our affiliate.")
+            else:
+                await bot.send_message(user_id, f"⚠️ Unexpected response:\n\n{response.text}")
+
+    asyncio.create_task(check_affiliate())
+
+@bot.on_message(filters.command("start"))
+async def start_cmd(client, message):
+    await message.reply("👋 Welcome! Send your Quotex Trader ID to verify and join our VIP channel.")
+
+async def main():
+    await tele_client.start()
+    await bot.start()
+    print("🚀 Bot is running!")
+    await idle()
+
+from pyrogram import idle
+
+if __name__ == "__main__":
+    asyncio.run(main())
