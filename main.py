@@ -6,7 +6,7 @@ from telethon.sessions import StringSession
 # Pyrogram bot setup
 API_ID = 24356162
 API_HASH = "62ec18e1057a76c520f10662c66ef71b"
-BOT_TOKEN = "7145293109:AAFpWPXnPbRk_svPa8dSkdn5gvDtiNXOpf8"
+BOT_TOKEN = "8037173328:AAHHlauP_D9le4nLZJPonaio_p0kyG43elM"
 VIP_CHANNEL_LINK = "https://t.me/+YOUR_VIP_INVITE_LINK"  # replace with your actual VIP invite
 
 # Telethon client setup
